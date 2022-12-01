@@ -284,7 +284,7 @@ async function run() {
 }
 
 run()
-.catch(err => console.error(err))
+    .catch(err => console.error(err))
 
 app.get('/', (req, res) => {
     res.send('Server is functioning')
