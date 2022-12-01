@@ -87,7 +87,7 @@ async function run() {
             res.send(filtered)
         });
 
-        app.get("/sellersproduct", async (req, res) => {
+        app.get("/addedbyseller", async (req, res) => {
             const email = req.query.email;
             const queryByEmailForSeller = { email: email };
             const orders = await mobileCollection.find(queryByEmailForSeller).toArray();
@@ -103,36 +103,36 @@ async function run() {
             res.send(result);
         });
 
-        // // advertisement...
-        // app.post("/advertise", async (req, res) => {
-        //     const phones = req.body;
-        //     const id = phones._id;
-        //     const query = {
-        //         _id: ObjectId(id),
-        //         stock: phones.stock,
-        //         email: phones.email,
-        //     }
-        //     const filter = { _id: ObjectId(id) };
-        //     const updatedDoc = {
-        //         $set: {
-        //             advertised: true,
-        //         }
-        //     }
-        //     const updateFilter = await advertisementCollection.updateOne(filter, updatedDoc)
-        //     const available = await advertisementCollection.find(query).toArray();
-        //     if (available.length) {
-        //         const message = `You have already a advertised for this item`;
-        //         return res.send({ acknowledged: false, message });
-        //     }
-        //     const result = await advertisementCollection.insertOne(phones);
-        //     res.send(result);
-        // });
+        // advertisement...
+        app.post("/advertise", async (req, res) => {
+            const phones = req.body;
+            const id = phones._id;
+            const query = {
+                _id: ObjectId(id),
+                stock: phones.stock,
+                email: phones.email,
+            }
+            const filter = { _id: ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    advertised: true,
+                }
+            }
+            const updateFilter = await advertisementCollection.updateOne(filter, updatedDoc)
+            const available = await advertisementCollection.find(query).toArray();
+            if (available.length) {
+                const message = `You have already a advertised for this item`;
+                return res.send({ acknowledged: false, message });
+            }
+            const result = await advertisementCollection.insertOne(phones);
+            res.send(result);
+        });
 
-        // app.get('/advertise', async (req, res) => {
-        //     const query = {};
-        //     const phone = await advertisementCollection.find(query).toArray();
-        //     res.send(phone);
-        // });
+        app.get('/advertise', async (req, res) => {
+            const query = {};
+            const phone = await advertisementCollection.find(query).toArray();
+            res.send(phone);
+        });
 
 
         // wishlist.....
@@ -212,7 +212,7 @@ async function run() {
             res.send(order);
         });
 
-        app.post("/orders", verifySeller, async (req, res) => {
+        app.post("/orders", async (req, res) => {
             const order = req.body;
             const query = {
                 Order_id: order.Order_id,

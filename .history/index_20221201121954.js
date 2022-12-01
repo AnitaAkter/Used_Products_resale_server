@@ -43,28 +43,6 @@ async function run() {
         const paymentsCollection = client.db("usalesexpress").collection("payments");
 
 
-        const verifyAdmin = async (req, res, next) => {
-            console.log("inside admin verify", req.decoded.email);
-            const decodedEmail = req.decoded.email;
-            const query = { email: decodedEmail };
-            const user = await usersCollection.findOne(query);
-            if (user?.role !== "admin") {
-                return res.status(403).send({ message: "Forbidden Access" });
-            }
-            next();
-        };
-        const verifySeller = async (req, res, next) => {
-            console.log("inside seller verify", req.decoded.email);
-            const decodedEmail = req.decoded.email;
-            const query = { email: decodedEmail };
-            const user = await usersCollection.findOne(query);
-            if (user?.role !== "seller") {
-                return res.status(403).send({ message: "Forbidden Access" });
-            }
-            next();
-        };
-
-
         app.get("/phones", async (req, res) => {
             const id = req.params.id;
             const query = {};
@@ -76,6 +54,7 @@ async function run() {
             const alreadyordered = await ordersCollection.find(orderQuery).toArray();
             filtered.forEach(fil => {
                 const filteredOrder = alreadyordered.filter(order => order.orderId === fil.orderId)
+                console.log(filteredOrder)
             })
 
             res.send(filtered);
@@ -87,7 +66,7 @@ async function run() {
             res.send(filtered)
         });
 
-        app.get("/sellersproduct", async (req, res) => {
+        app.get("/addedbyseller", async (req, res) => {
             const email = req.query.email;
             const queryByEmailForSeller = { email: email };
             const orders = await mobileCollection.find(queryByEmailForSeller).toArray();
@@ -96,43 +75,44 @@ async function run() {
 
 
         // phones....
-        app.post("/phones", async (req, res) => {
+        app.post("/phones", verifyJWT, async (req, res) => {
             const phones = req.body;
-            console.log('inside phones', phones)
+            console.log(object)
             const result = await mobileCollection.insertOne(phones);
             res.send(result);
         });
 
-        // // advertisement...
-        // app.post("/advertise", async (req, res) => {
-        //     const phones = req.body;
-        //     const id = phones._id;
-        //     const query = {
-        //         _id: ObjectId(id),
-        //         stock: phones.stock,
-        //         email: phones.email,
-        //     }
-        //     const filter = { _id: ObjectId(id) };
-        //     const updatedDoc = {
-        //         $set: {
-        //             advertised: true,
-        //         }
-        //     }
-        //     const updateFilter = await advertisementCollection.updateOne(filter, updatedDoc)
-        //     const available = await advertisementCollection.find(query).toArray();
-        //     if (available.length) {
-        //         const message = `You have already a advertised for this item`;
-        //         return res.send({ acknowledged: false, message });
-        //     }
-        //     const result = await advertisementCollection.insertOne(phones);
-        //     res.send(result);
-        // });
+        // advertisement...
+        app.post("/advertise", async (req, res) => {
+            const phones = req.body;
+            const id = phones._id;
+            const query = {
+                _id: ObjectId(id),
+                stock: phones.stock,
+                email: phones.email,
+            }
+            const filter = { _id: ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    advertised: true,
+                }
+            }
+            const updateFilter = await advertisementCollection.updateOne(filter, updatedDoc)
+            const available = await advertisementCollection.find(query).toArray();
+            if (available.length) {
+                const message = `You have already a advertised for this item`;
+                return res.send({ acknowledged: false, message });
+            }
+            console.log(available)
+            const result = await advertisementCollection.insertOne(phones);
+            res.send(result);
+        });
 
-        // app.get('/advertise', async (req, res) => {
-        //     const query = {};
-        //     const phone = await advertisementCollection.find(query).toArray();
-        //     res.send(phone);
-        // });
+        app.get('/advertise', async (req, res) => {
+            const query = {};
+            const phone = await advertisementCollection.find(query).toArray();
+            res.send(phone);
+        });
 
 
         // wishlist.....
@@ -150,6 +130,7 @@ async function run() {
                 const message = `You have already added to wishlist this item`;
                 return res.send({ acknowledged: false, message });
             }
+            console.log(available)
             const result = await wishListCollection.insertOne(phones);
             res.send(result);
 
@@ -212,7 +193,7 @@ async function run() {
             res.send(order);
         });
 
-        app.post("/orders", verifySeller, async (req, res) => {
+        app.post("/orders", async (req, res) => {
             const order = req.body;
             const query = {
                 Order_id: order.Order_id,

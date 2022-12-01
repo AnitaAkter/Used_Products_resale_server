@@ -87,7 +87,7 @@ async function run() {
             res.send(filtered)
         });
 
-        app.get("/sellersproduct", async (req, res) => {
+        app.get("/addedbyseller", async (req, res) => {
             const email = req.query.email;
             const queryByEmailForSeller = { email: email };
             const orders = await mobileCollection.find(queryByEmailForSeller).toArray();
