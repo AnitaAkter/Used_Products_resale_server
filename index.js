@@ -87,7 +87,7 @@ async function run() {
             res.send(filtered)
         });
 
-        app.get("/sellersproduct", async (req, res) => {
+        app.get("/sellersproduct", verifySeller, async (req, res) => {
             const email = req.query.email;
             const queryByEmailForSeller = { email: email };
             const orders = await mobileCollection.find(queryByEmailForSeller).toArray();
@@ -185,7 +185,7 @@ async function run() {
 
         });
 
-        app.get("/reports", async (req, res) => {
+        app.get("/reports", verifyAdmin, async (req, res) => {
             const email = req.query.email;
             console.log(req.headers.authorization);
             const query = { email: email };
@@ -253,13 +253,13 @@ async function run() {
             res.send(result);
         });
 
-        app.get("/users/admin/:email", async (req, res) => {
+        app.get("/users/admin/:email", verifyAdmin, async (req, res) => {
             const email = req.params.email;
             const query = { email };
             const user = await usersCollection.findOne(query);
             res.send({ isAdmin: user?.role === "admin" });
         });
-        app.get("/users/seller/:email", async (req, res) => {
+        app.get("/users/seller/:email", verifySeller, async (req, res) => {
             const email = req.params.email;
             const query = { email };
             console.log('inside seller api', query)
@@ -271,25 +271,25 @@ async function run() {
             const query = {};
             const users = await usersCollection.find(query).toArray();
             res.send(users)
-
-            app.delete("/users/:id", async (req, res) => {
-                const id = req.params.id;
-                const query = { _id: ObjectId(id) };
-                const result = await usersCollection.deleteOne(query);
-                res.send(result);
-            });
         })
+        app.delete("/users/:id", verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await usersCollection.deleteOne(query);
+            res.send(result);
+        });
 
     } finally {
     }
 }
 
-run().catch(err => console.error(err))
+run()
+.catch(err => console.error(err))
 
 app.get('/', (req, res) => {
-    res.send('Server is running...')
+    res.send('Server is functioning')
 })
 
 app.listen(port, () => {
-    console.log(`Server is running on ${port}`)
+    console.log(`Server is functioning on ${port}`)
 })
