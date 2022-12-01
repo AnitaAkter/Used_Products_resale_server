@@ -31,16 +31,14 @@ function verifyJWT(req, res, next) {
 
 async function run() {
     try {
-        // const categoryCollection = client.db("salesexpress").collection("mobilecollection");
         const mobileCollection = client.db("salesexpress").collection("allmobilebycategory");
-
-        const advertisementCollection = client.db("salesexpress").collection("advertise");
         const wishListCollection = client.db("salesexpress").collection("wishlist");
         const ordersCollection = client.db("salesexpress").collection("orders");
         const usersCollection = client.db("salesexpress").collection("users");
         const reportsCollection = client.db("salesexpress").collection("report");
         const sellersCollection = client.db("salesexpress").collection("sellers");
         const paymentsCollection = client.db("usalesexpress").collection("payments");
+        const advertisementCollection = client.db("salesexpress").collection("advertise");
 
 
         const verifyAdmin = async (req, res, next) => {
@@ -87,7 +85,7 @@ async function run() {
             res.send(filtered)
         });
 
-        app.get("/sellersproduct", verifySeller, async (req, res) => {
+        app.get("/sellersproduct", async (req, res) => {
             const email = req.query.email;
             const queryByEmailForSeller = { email: email };
             const orders = await mobileCollection.find(queryByEmailForSeller).toArray();
@@ -102,37 +100,6 @@ async function run() {
             const result = await mobileCollection.insertOne(phones);
             res.send(result);
         });
-
-        // // advertisement...
-        // app.post("/advertise", async (req, res) => {
-        //     const phones = req.body;
-        //     const id = phones._id;
-        //     const query = {
-        //         _id: ObjectId(id),
-        //         stock: phones.stock,
-        //         email: phones.email,
-        //     }
-        //     const filter = { _id: ObjectId(id) };
-        //     const updatedDoc = {
-        //         $set: {
-        //             advertised: true,
-        //         }
-        //     }
-        //     const updateFilter = await advertisementCollection.updateOne(filter, updatedDoc)
-        //     const available = await advertisementCollection.find(query).toArray();
-        //     if (available.length) {
-        //         const message = `You have already a advertised for this item`;
-        //         return res.send({ acknowledged: false, message });
-        //     }
-        //     const result = await advertisementCollection.insertOne(phones);
-        //     res.send(result);
-        // });
-
-        // app.get('/advertise', async (req, res) => {
-        //     const query = {};
-        //     const phone = await advertisementCollection.find(query).toArray();
-        //     res.send(phone);
-        // });
 
 
         // wishlist.....
@@ -185,7 +152,14 @@ async function run() {
 
         });
 
-        app.get("/reports", verifyAdmin, async (req, res) => {
+        app.delete("/reports/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await reportsCollection.deleteOne(query);
+            res.send(result);
+        });
+
+        app.get("/reports", async (req, res) => {
             const email = req.query.email;
             console.log(req.headers.authorization);
             const query = { email: email };
@@ -212,7 +186,7 @@ async function run() {
             res.send(order);
         });
 
-        app.post("/orders", verifySeller, async (req, res) => {
+        app.post("/orders", async (req, res) => {
             const order = req.body;
             const query = {
                 Order_id: order.Order_id,
@@ -253,13 +227,13 @@ async function run() {
             res.send(result);
         });
 
-        app.get("/users/admin/:email", verifyAdmin, async (req, res) => {
+        app.get("/users/admin/:email", async (req, res) => {
             const email = req.params.email;
             const query = { email };
             const user = await usersCollection.findOne(query);
             res.send({ isAdmin: user?.role === "admin" });
         });
-        app.get("/users/seller/:email", verifySeller, async (req, res) => {
+        app.get("/users/seller/:email", async (req, res) => {
             const email = req.params.email;
             const query = { email };
             console.log('inside seller api', query)
@@ -272,7 +246,7 @@ async function run() {
             const users = await usersCollection.find(query).toArray();
             res.send(users)
         })
-        app.delete("/users/:id", verifyAdmin, async (req, res) => {
+        app.delete("/users/:id", async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const result = await usersCollection.deleteOne(query);
