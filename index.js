@@ -10,8 +10,9 @@ const port = process.env.PORT || 5000
 app.use(cors())
 app.use(express.json())
 
-const uri = "mongodb+srv://anita12:8IZacJ7gJIj4XeLy@cluster0.uxgzc97.mongodb.net/?retryWrites=true&w=majority";
+const uri = `mongodb+srv://${process.env.DB_User}:${process.env.DB_PASS}@cluster0.uxgzc97.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+
 
 function verifyJWT(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -19,7 +20,7 @@ function verifyJWT(req, res, next) {
         return res.status(401).send("Access Denied")
     }
     const token = authHeader.split("")[1];
-    jwt.verify(token, process.env.DB_ACCESS_TOken, function (error, decoded) {
+    jwt.verify(token, process.env.DB_AccessToken, function (error, decoded) {
         if (error) {
             return res.status(403).send({ message: "Forbidden Access" });
         }
@@ -36,13 +37,10 @@ async function run() {
         const ordersCollection = client.db("salesexpress").collection("orders");
         const usersCollection = client.db("salesexpress").collection("users");
         const reportsCollection = client.db("salesexpress").collection("report");
-        const sellersCollection = client.db("salesexpress").collection("sellers");
-        const paymentsCollection = client.db("usalesexpress").collection("payments");
-        const advertisementCollection = client.db("salesexpress").collection("advertise");
+        const advertiseCollection = client.db("salesexpress").collection("advertize");
 
 
         const verifyAdmin = async (req, res, next) => {
-            console.log("inside admin verify", req.decoded.email);
             const decodedEmail = req.decoded.email;
             const query = { email: decodedEmail };
             const user = await usersCollection.findOne(query);
@@ -52,7 +50,6 @@ async function run() {
             next();
         };
         const verifySeller = async (req, res, next) => {
-            console.log("inside seller verify", req.decoded.email);
             const decodedEmail = req.decoded.email;
             const query = { email: decodedEmail };
             const user = await usersCollection.findOne(query);
@@ -96,7 +93,6 @@ async function run() {
         // phones....
         app.post("/phones", async (req, res) => {
             const phones = req.body;
-            console.log('inside phones', phones)
             const result = await mobileCollection.insertOne(phones);
             res.send(result);
         });
@@ -111,7 +107,6 @@ async function run() {
                 _id: new ObjectId(id),
                 email: phones.email,
             }
-            console.log(phones, id, query)
             const available = await wishListCollection.find(query).toArray();
             if (available.length) {
                 const message = `You have already added to wishlist this item`;
@@ -124,12 +119,13 @@ async function run() {
 
         app.get("/wishlist", async (req, res) => {
             const email = req.query.email;
-            console.log(req.headers.authorization);
             const query = { email: email };
             const orders = await wishListCollection.find(query).toArray();
             res.send(orders);
 
         });
+
+
 
         // Reports
         app.post("/reports", async (req, res) => {
@@ -140,13 +136,11 @@ async function run() {
                 _id: new ObjectId(id),
                 email: phones.email,
             }
-            console.log(phones, id, query)
             const available = await reportsCollection.find(query).toArray();
             if (available.length) {
                 const message = `You have reported this Item Already`;
                 return res.send({ acknowledged: false, message });
             }
-            console.log(available)
             const result = await reportsCollection.insertOne(phones);
             res.send(result);
 
@@ -161,7 +155,6 @@ async function run() {
 
         app.get("/reports", async (req, res) => {
             const email = req.query.email;
-            console.log(req.headers.authorization);
             const query = { email: email };
             const orders = await reportsCollection.find(query).toArray();
             res.send(orders);
@@ -172,16 +165,7 @@ async function run() {
         // orders....
         app.get("/orders", async (req, res) => {
             const email = req.query.email;
-            console.log(req.headers.authorization)
-            // const decodedEmail = req.decoded.email;
-            // if (email !== decodedEmail) {
-            //     return res
-            //         .status(403)
-            //         .send({ message: "Forbidden Access from if" });
-            // }
-
             const query = { email: email };
-            console.log(email);
             const order = await ordersCollection.find(query).toArray();
             res.send(order);
         });
@@ -202,7 +186,32 @@ async function run() {
             res.send(result);
 
         });
+        // Ad
 
+        app.post("/ad", async (req, res) => {
+            const mobiles = req.body;
+            const id = mobiles._id;
+            const query = {
+                _id: ObjectId(id),
+                email: mobiles.email
+            }
+            const filter = { _id: ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    advertiesed: true,
+                }
+            }
+            const updateFilter = await advertiseCollection.updateOne(filter, updatedDoc)
+            const result = await advertiseCollection.insertOne(mobiles);
+            res.send(result);
+        });
+
+        app.get('/ad', async (req, res) => {
+            const query = {};
+            const mobile = await advertiseCollection.find(query).toArray();
+            res.send(mobile)
+
+        })
 
         // JWT...
         app.get("/jwt", async (req, res) => {
@@ -210,7 +219,7 @@ async function run() {
             const query = { email: email };
             const user = await usersCollection.findOne(query);
             if (user && user?.email) {
-                const token = jwt.sign({ email }, process.env.DB_ACCESS_TOken, {
+                const token = jwt.sign({ email }, process.env.DB_AccessToken, {
                     expiresIn: "23h",
                 });
                 return res.send({ accessToken: token });
@@ -222,7 +231,6 @@ async function run() {
         // Users....
         app.post("/usersall", async (req, res) => {
             const user = req.body;
-            console.log(user);
             const result = await usersCollection.insertOne(user);
             res.send(result);
         });
@@ -236,9 +244,7 @@ async function run() {
         app.get("/users/seller/:email", async (req, res) => {
             const email = req.params.email;
             const query = { email };
-            console.log('inside seller api', query)
             const user = await usersCollection.findOne(query);
-            console.log(user, email)
             res.send({ isSeller: user?.role === "seller" });
         });
         app.get('/users', async (req, res) => {
