@@ -38,6 +38,7 @@ async function run() {
         const usersCollection = client.db("salesexpress").collection("users");
         const reportsCollection = client.db("salesexpress").collection("report");
         const advertiseCollection = client.db("salesexpress").collection("advertize");
+        const blogCollection = client.db("salesexpress").collection("blogs");
 
 
         const verifyAdmin = async (req, res, next) => {
@@ -265,6 +266,12 @@ async function run() {
             const result = await usersCollection.deleteOne(query);
             res.send(result);
         });
+
+        app.get('/blogs', async (req, res) => {
+            const query = {};
+            const users = await blogCollection.find(query).toArray();
+            res.send(users)
+        })
 
     } finally {
     }
